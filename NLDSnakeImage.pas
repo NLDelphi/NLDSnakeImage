@@ -1,3 +1,18 @@
+{ *************************************************************************** }
+{                                                                             }
+{ NLDSnakeImage  -  www.nldelphi.com Open Source Delphi designtime component  }
+{                                                                             }
+{ Initiator: Albert de Weerd (aka NGLN)                                       }
+{ License: Free to use, free to modify                                        }
+{ SVN path: http://svn.nldelphi.com/nldelphi/opensource/ngln/NLDSnakeImage    }
+{                                                                             }
+{ *************************************************************************** }
+{                                                                             }
+{ Date: March 23, 2011                                                        }
+{ Version: 1.0.0.1                                                            }
+{                                                                             }
+{ *************************************************************************** }
+
 unit NLDSnakeImage;
 
 interface
@@ -562,11 +577,11 @@ begin
     if (FSplashes.Count < 15) and (GetTickCount > (FPrevTick + 2000)) then
       Splash;
     DC := FBuffer.Canvas.Handle;
-    Brush := CreateSolidBrush(TailColor);
+    Brush := CreateSolidBrush(Graphics.ColorToRGB(TailColor));
     DeleteObject(SelectObject(DC, Brush));
     R := Rect(0, 0, Width, Height);
     FillRect(DC, R, Brush);
-    Brush := CreateSolidBrush(HeadColor);
+    Brush := CreateSolidBrush(Graphics.ColorToRGB(HeadColor));
     DeleteObject(SelectObject(DC, Brush));
     SetPolyFillMode(DC, WINDING);
     for I := 0 to FSplashes.Count - 1 do
