@@ -344,7 +344,7 @@ begin
   if FSnakeWidth <> Value then
   begin
     Stop;
-    FSnakeWidth := Max(0, Min(Value, 50));
+    FSnakeWidth := Max(3, Min(Value, 50));
     Invalidate;
   end;
 end;
@@ -577,11 +577,11 @@ begin
     if (FSplashes.Count < 15) and (GetTickCount > (FPrevTick + 2000)) then
       Splash;
     DC := FBuffer.Canvas.Handle;
-    Brush := CreateSolidBrush(Graphics.ColorToRGB(TailColor));
+    Brush := CreateSolidBrush(Graphics.ColorToRGB(Color));
     DeleteObject(SelectObject(DC, Brush));
     R := Rect(0, 0, Width, Height);
     FillRect(DC, R, Brush);
-    Brush := CreateSolidBrush(Graphics.ColorToRGB(HeadColor));
+    Brush := CreateSolidBrush(Graphics.ColorToRGB(FHeadColor));
     DeleteObject(SelectObject(DC, Brush));
     SetPolyFillMode(DC, WINDING);
     for I := 0 to FSplashes.Count - 1 do
