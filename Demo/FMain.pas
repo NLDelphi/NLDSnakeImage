@@ -44,7 +44,6 @@ procedure TMainForm.StopButtonClick(Sender: TObject);
 begin
   FSnakeImage.Stop;
   StopButton.Enabled := False;
-  Thanks.Visible := True;
   FSnakeImage.SendToBack;
 end;
 

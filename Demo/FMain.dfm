@@ -46,6 +46,5 @@ object MainForm: TMainForm
     ParentFont = False
     TabOrder = 1
     Transparent = False
-    Visible = False
   end
 end

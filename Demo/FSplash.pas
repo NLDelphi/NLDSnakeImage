@@ -14,7 +14,7 @@ type
     procedure TimerTimer(Sender: TObject);
     procedure SnakeClick(Sender: TObject);
   private
-    FClickCount: Integer;
+    FClicked: Boolean;
     FSnakeImage: TNLDSnakeImage;
   end;
 
@@ -25,13 +25,13 @@ implementation
 procedure TSplashForm.FormCreate(Sender: TObject);
 begin
   FSnakeImage := TNLDSnakeImage.Create(Self);
-  FSnakeImage.SetBounds(0, 0, 640, 480);
+  FSnakeImage.AutoSize := True;
   FSnakeImage.GraphicFileName := 'SplashScreen.jpg';
   FSnakeImage.HeadColor := $00408D1E;
   FSnakeImage.TailColor := $00F0FBEC;
   FSnakeImage.OnClick := SnakeClick;
   FSnakeImage.Parent := Self;
-  Manual.Parent := FSnakeImage;
+  Manual.BringToFront;
 end;
 
 procedure TSplashForm.FormShow(Sender: TObject);
@@ -41,11 +41,11 @@ end;
 
 procedure TSplashForm.SnakeClick(Sender: TObject);
 begin
-  if FClickCount > 0 then
+  if FClicked then
     ModalResult := mrOk
   else
     Manual.Caption := 'But it''s worth waiting ;)';
-  Inc(FClickCount);
+  FClicked := True;
 end;
 
 procedure TSplashForm.TimerTimer(Sender: TObject);
