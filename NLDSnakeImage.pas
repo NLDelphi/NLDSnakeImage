@@ -113,7 +113,8 @@ type
   published
     property GraphicFileName: String read FGraphicFileName
       write SetGraphicFileName;
-    property Picture: TPicture read FPicture write SetPicture stored IsPictureStored;
+    property Picture: TPicture read FPicture write SetPicture
+      stored IsPictureStored;
   published
     property Align;
     property Anchors;
@@ -186,10 +187,11 @@ constructor TSnake.Create(AOwner: TComponent);
 begin
   inherited Create(AOwner);
   if csDesigning in ComponentState then
-    ControlStyle := [csAcceptsControls, csClickEvents, csDoubleClicks]
+    ControlStyle := [csAcceptsControls, csClickEvents, csDoubleClicks,
+      csReplicatable]
   else
     ControlStyle := [csAcceptsControls, csClickEvents, csOpaque, csDoubleClicks,
-      csDisplayDragImage];
+      csReplicatable, csDisplayDragImage];
   FBuffer := TBitmap.Create;
   FSnakeWidth := 20;
   SetHeadColor(clBlack);
@@ -568,7 +570,6 @@ begin
     else
     begin
       Canvas.Pen.Style := psDash;
-      Canvas.Brush.Style := bsClear;
       Canvas.Rectangle(0, 0, Width, Height);
     end;
   end
@@ -600,12 +601,8 @@ begin
     inherited Paint;
     BitBlt(Canvas.Handle, 0, 0, Width, Height, DC, 0, 0, SRCCOPY);
   end
-  else if HasParent and (FPointCount = 0) then
-  begin
-    Canvas.Brush.Style := bsSolid;
-    Canvas.Brush.Color := Color;
+  else
     Canvas.FillRect(Rect(0, 0, Width, Height));
-  end;
 end;
 
 procedure TNLDSnakeImage.PictureChanged(Sender: TObject);
@@ -671,8 +668,8 @@ begin
     FImage.Canvas.FillRect(R);
     R := FitRect(R, FPicture.Width, FPicture.Height, True);
     FImage.Canvas.StretchDraw(R, FPicture.Graphic);
-    Invalidate;
   end;
+  Invalidate;
 end;
 
 initialization
