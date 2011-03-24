@@ -28,7 +28,11 @@ package NLDSnakeImage70;
 
 requires
   rtl,
+{$IFDEF VER210}
+  vclimg,
+{$ELSE}
   vcljpg,
+{$ENDIF}
   vcl;
 
 contains
