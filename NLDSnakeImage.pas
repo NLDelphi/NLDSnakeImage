@@ -8,8 +8,8 @@
 {                                                                             }
 { *************************************************************************** }
 {                                                                             }
-{ Date: March 23, 2011                                                        }
-{ Version: 1.0.0.1                                                            }
+{ Date: March 27, 2011                                                        }
+{ Version: 1.0.0.2                                                            }
 {                                                                             }
 { *************************************************************************** }
 
@@ -186,12 +186,8 @@ const
 constructor TSnake.Create(AOwner: TComponent);
 begin
   inherited Create(AOwner);
-  if csDesigning in ComponentState then
-    ControlStyle := [csAcceptsControls, csClickEvents, csDoubleClicks,
-      csReplicatable]
-  else
-    ControlStyle := [csAcceptsControls, csClickEvents, csOpaque, csDoubleClicks,
-      csReplicatable, csDisplayDragImage];
+  ControlStyle := [csAcceptsControls, csClickEvents, csOpaque, csDoubleClicks,
+    csReplicatable, csDisplayDragImage];
   FBuffer := TBitmap.Create;
   FSnakeWidth := 20;
   SetHeadColor(clBlack);
@@ -289,32 +285,29 @@ var
   end;
 
 begin
-  if HasParent and (FPointCount > 0) then
+  DC := FBuffer.Canvas.Handle;
+  LogBrush.lbStyle := BS_SOLID;
+  LogBrush.lbHatch := 0;
+  if FHeadIndex < (FSnakeLength - 1) then
+    MaxWidth := Ceil(FSnakeWidth * (FHeadIndex / FSnakeLength))
+  else
+    MaxWidth := FSnakeWidth;
+  GradientCircle(FPoints[FHeadIndex]);
+  SegmentLength := FSnakeLength div FSnakeWidth;
+  FromIndex := FHeadIndex - MaxWidth * SegmentLength;
+  MaxWidth := 1;
+  while FromIndex < FHeadIndex do
   begin
-    DC := FBuffer.Canvas.Handle;
-    LogBrush.lbStyle := BS_SOLID;
-    LogBrush.lbHatch := 0;
-    if FHeadIndex < (FSnakeLength - 1) then
-      MaxWidth := Ceil(FSnakeWidth * (FHeadIndex / FSnakeLength))
+    if FromIndex < 0 then
+      GradientPolyLine(0, FromIndex + SegmentLength + 1)
+    else if (FromIndex + SegmentLength) = FHeadIndex then
+      GradientPolyLine(FromIndex, SegmentLength + 1)
     else
-      MaxWidth := FSnakeWidth;
-    GradientCircle(FPoints[FHeadIndex]);
-    SegmentLength := FSnakeLength div FSnakeWidth;
-    FromIndex := FHeadIndex - MaxWidth * SegmentLength;
-    MaxWidth := 1;
-    while FromIndex < FHeadIndex do
-    begin
-      if FromIndex < 0 then
-        GradientPolyLine(0, FromIndex + SegmentLength + 1)
-      else if (FromIndex + SegmentLength) = FHeadIndex then
-        GradientPolyLine(FromIndex, SegmentLength + 1)
-      else
-        GradientPolyLine(FromIndex, SegmentLength + 2);
-      Inc(FromIndex, SegmentLength);
-      Inc(MaxWidth);
-    end;
-    DeleteObject(Pen);
+      GradientPolyLine(FromIndex, SegmentLength + 2);
+    Inc(FromIndex, SegmentLength);
+    Inc(MaxWidth);
   end;
+  DeleteObject(Pen);
 end;
 
 procedure TSnake.Resize;
@@ -562,6 +555,7 @@ var
   end;
 
 begin
+  R := Rect(0, 0, Width, Height);
   if csDesigning in ComponentState then
   begin
     if FPicture.Graphic <> nil then
@@ -570,7 +564,7 @@ begin
     else
     begin
       Canvas.Pen.Style := psDash;
-      Canvas.Rectangle(0, 0, Width, Height);
+      Canvas.Rectangle(R);
     end;
   end
   else if HasParent and (FPointCount > 0) then
@@ -580,7 +574,6 @@ begin
     DC := FBuffer.Canvas.Handle;
     Brush := CreateSolidBrush(Graphics.ColorToRGB(Color));
     DeleteObject(SelectObject(DC, Brush));
-    R := Rect(0, 0, Width, Height);
     FillRect(DC, R, Brush);
     Brush := CreateSolidBrush(Graphics.ColorToRGB(FHeadColor));
     DeleteObject(SelectObject(DC, Brush));
@@ -602,7 +595,7 @@ begin
     BitBlt(Canvas.Handle, 0, 0, Width, Height, DC, 0, 0, SRCCOPY);
   end
   else
-    Canvas.FillRect(Rect(0, 0, Width, Height));
+    Canvas.FillRect(R);
 end;
 
 procedure TNLDSnakeImage.PictureChanged(Sender: TObject);
