@@ -20,6 +20,11 @@ interface
 uses
   Windows, SysUtils, Classes, Controls, Messages, Graphics, Math, Contnrs, Jpeg;
 
+const
+  DefSnakeInterval = 10;
+  DefSnakeWidth = 20;
+  DefSplashInterval = 1000;
+
 type
   TRGB = record
     R: Byte;
@@ -29,6 +34,8 @@ type
 
   TBezier = array[0..3] of TPoint;
   TPointArray = array of TPoint;
+  TSnakeInterval = 1..50;
+  TSnakeWidth = 3..50;
 
   TSnake = class(TCustomControl)
   private
@@ -40,16 +47,19 @@ type
     FMargin: Integer;
     FPointCount: Integer;
     FPoints: TPointArray;
+    FRunning: Boolean;
+    FSnakeInterval: TSnakeInterval;
     FSnakeLength: Integer;
-    FSnakeWidth: Integer;
+    FSnakeWidth: TSnakeWidth;
     FTailClr: TRGB;
     function GetTailColor: TColor;
     procedure Grow;
     procedure SetHeadColor(Value: TColor);
-    procedure SetSnakeWidth(Value: Integer);
+    procedure SetSnakeInterval(Value: TSnakeInterval);
+    procedure SetSnakeWidth(Value: TSnakeWidth);
     procedure SetTailColor(Value: TColor);
     procedure Sneak;
-    function WidthToColor(Cur, Max: Integer): COLORREF;
+    function WidthToColor(Cur, Max: Integer): TColorRef;
     procedure WMEraseBkgnd(var Message: TWMEraseBkgnd); message WM_ERASEBKGND;
   protected
     procedure CreateParams(var Params: TCreateParams); override;
@@ -64,8 +74,10 @@ type
   published
     property HeadColor: TColor read FHeadColor write SetHeadColor
       default clBlack;
-    property SnakeWidth: Integer read FSnakeWidth write SetSnakeWidth
-      default 20;
+    property SnakeInterval: TSnakeInterval read FSnakeInterval
+      write SetSnakeInterval {default DefSnakeInterval} stored False;
+    property SnakeWidth: TSnakeWidth read FSnakeWidth write SetSnakeWidth
+      default DefSnakeWidth;
     property TailColor: TColor read GetTailColor write SetTailColor
       default clBtnFace;
   end;
@@ -89,11 +101,12 @@ type
   TNLDSnakeImage = class(TSnake)
   private
     FBlendFunc: TBlendFunction;
+    FGraphicFileName: String;
     FImage: TBitmap;
     FPicture: TPicture;
     FPrevTick: Cardinal;
     FSplashes: TSplashes;
-    FGraphicFileName: String;
+    FSplashInterval: Cardinal;
     function IsPictureStored: Boolean;
     procedure PictureChanged(Sender: TObject);
     procedure SetGraphicFileName(const Value: String);
@@ -115,6 +128,8 @@ type
       write SetGraphicFileName;
     property Picture: TPicture read FPicture write SetPicture
       stored IsPictureStored;
+    property SplashInterval: Cardinal read FSplashInterval
+      write FSplashInterval default DefSplashInterval;
   published
     property Align;
     property Anchors;
@@ -189,7 +204,8 @@ begin
   ControlStyle := [csAcceptsControls, csClickEvents, csOpaque, csDoubleClicks,
     csReplicatable, csDisplayDragImage];
   FBuffer := TBitmap.Create;
-  FSnakeWidth := 20;
+  FSnakeInterval := DefSnakeInterval;
+  FSnakeWidth := DefSnakeWidth;
   SetHeadColor(clBlack);
   SetTailColor(clBtnFace);
 end;
@@ -334,12 +350,25 @@ begin
   end;
 end;
 
-procedure TSnake.SetSnakeWidth(Value: Integer);
+procedure TSnake.SetSnakeInterval(Value: TSnakeInterval);
+begin
+  if FSnakeInterval <> Value then
+  begin
+    FSnakeInterval := Value;
+    if FRunning and HandleAllocated then
+    begin
+      KillTimer(Handle, 0);
+      SetTimer(Handle, 0, FSnakeInterval, nil);
+    end;
+  end;
+end;
+
+procedure TSnake.SetSnakeWidth(Value: TSnakeWidth);
 begin
   if FSnakeWidth <> Value then
   begin
     Stop;
-    FSnakeWidth := Max(3, Min(Value, 50));
+    FSnakeWidth := Value;
     Invalidate;
   end;
 end;
@@ -377,19 +406,23 @@ end;
 procedure TSnake.Start;
 begin
   if HandleAllocated then
-    SetTimer(Handle, 0, 20, nil);
+  begin
+    SetTimer(Handle, 0, FSnakeInterval, nil);
+    FRunning := True;
+  end;
 end;
 
 procedure TSnake.Stop;
 begin
   if HandleAllocated then
     KillTimer(Handle, 0);
+  FRunning := False;
   FPointCount := 0;
   SetLength(FPoints, 0);
   FHeadIndex := 0;
 end;
 
-function TSnake.WidthToColor(Cur, Max: Integer): COLORREF;
+function TSnake.WidthToColor(Cur, Max: Integer): TColorRef;
 var
   Color: TRGB;
 begin
@@ -486,6 +519,7 @@ begin
   FPicture.OnChange := PictureChanged;
   FImage := TBitmap.Create;
   FSplashes := TSplashes.Create(True);
+  FSplashInterval := DefSplashInterval;
 end;
 
 destructor TNLDSnakeImage.Destroy;
@@ -569,7 +603,8 @@ begin
   end
   else if HasParent and (FPointCount > 0) then
   begin
-    if (FSplashes.Count < 15) and (GetTickCount > (FPrevTick + 2000)) then
+    if (FSplashes.Count < 15) and
+        (GetTickCount > (FPrevTick + FSplashInterval)) then
       Splash;
     DC := FBuffer.Canvas.Handle;
     Brush := CreateSolidBrush(Graphics.ColorToRGB(Color));
