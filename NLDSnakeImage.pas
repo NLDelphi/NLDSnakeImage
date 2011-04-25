@@ -75,7 +75,7 @@ type
     property HeadColor: TColor read FHeadColor write SetHeadColor
       default clBlack;
     property SnakeInterval: TSnakeInterval read FSnakeInterval
-      write SetSnakeInterval {default DefSnakeInterval} stored False;
+      write SetSnakeInterval default DefSnakeInterval;
     property SnakeWidth: TSnakeWidth read FSnakeWidth write SetSnakeWidth
       default DefSnakeWidth;
     property TailColor: TColor read GetTailColor write SetTailColor
