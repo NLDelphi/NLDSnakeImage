@@ -8,8 +8,8 @@
 {                                                                             }
 { *************************************************************************** }
 {                                                                             }
-{ Date: March 27, 2011                                                        }
-{ Version: 1.0.0.2                                                            }
+{ Date: April 25, 2011                                                        }
+{ Version: 1.1.0.0                                                            }
 {                                                                             }
 { *************************************************************************** }
 
@@ -18,7 +18,8 @@ unit NLDSnakeImage;
 interface
 
 uses
-  Windows, SysUtils, Classes, Controls, Messages, Graphics, Math, Contnrs, Jpeg;
+  Windows, SysUtils, Classes, Controls, Messages, Graphics, Math, Contnrs, Jpeg,
+  ExtCtrls;
 
 const
   DefSnakeInterval = 10;
@@ -37,7 +38,7 @@ type
   TSnakeInterval = 1..50;
   TSnakeWidth = 3..50;
 
-  TSnake = class(TCustomControl)
+  TSnake = class(TGraphicControl)
   private
     FBezier: TBezier;
     FBuffer: TBitmap;
@@ -47,11 +48,11 @@ type
     FMargin: Integer;
     FPointCount: Integer;
     FPoints: TPointArray;
-    FRunning: Boolean;
-    FSnakeInterval: TSnakeInterval;
     FSnakeLength: Integer;
+    FSnakeTimer: TTimer;
     FSnakeWidth: TSnakeWidth;
     FTailClr: TRGB;
+    function GetSnakeInterval: TSnakeInterval;
     function GetTailColor: TColor;
     procedure Grow;
     procedure SetHeadColor(Value: TColor);
@@ -59,13 +60,12 @@ type
     procedure SetSnakeWidth(Value: TSnakeWidth);
     procedure SetTailColor(Value: TColor);
     procedure Sneak;
+    procedure Timer(Sender: TObject);
     function WidthToColor(Cur, Max: Integer): TColorRef;
-    procedure WMEraseBkgnd(var Message: TWMEraseBkgnd); message WM_ERASEBKGND;
   protected
-    procedure CreateParams(var Params: TCreateParams); override;
+    procedure Loaded; override;
     procedure Paint; override;
     procedure Resize; override;
-    procedure WndProc(var Message: TMessage); override;
   public
     constructor Create(AOwner: TComponent); override;
     destructor Destroy; override;
@@ -74,7 +74,7 @@ type
   published
     property HeadColor: TColor read FHeadColor write SetHeadColor
       default clBlack;
-    property SnakeInterval: TSnakeInterval read FSnakeInterval
+    property SnakeInterval: TSnakeInterval read GetSnakeInterval
       write SetSnakeInterval default DefSnakeInterval;
     property SnakeWidth: TSnakeWidth read FSnakeWidth write SetSnakeWidth
       default DefSnakeWidth;
@@ -143,8 +143,6 @@ type
     property OnConstrainedResize;
     property OnContextPopup;
     property OnDblClick;
-    property OnDockDrop;
-    property OnDockOver;
     property OnDragDrop;
     property OnDragOver;
     property OnEndDock;
@@ -155,7 +153,6 @@ type
     property OnResize;
     property OnStartDock;
     property OnStartDrag;
-    property OnUnDock;
     property ParentShowHint;
     property PopupMenu;
     property ShowHint;
@@ -201,20 +198,15 @@ const
 constructor TSnake.Create(AOwner: TComponent);
 begin
   inherited Create(AOwner);
-  ControlStyle := [csAcceptsControls, csClickEvents, csOpaque, csDoubleClicks,
-    csReplicatable, csDisplayDragImage];
+  ControlStyle := [csClickEvents, csOpaque, csDoubleClicks];
+  FSnakeTimer := TTimer.Create(Self);
+  FSnakeTimer.Enabled := False;
+  FSnakeTimer.OnTimer := Timer;
   FBuffer := TBitmap.Create;
-  FSnakeInterval := DefSnakeInterval;
   FSnakeWidth := DefSnakeWidth;
   SetHeadColor(clBlack);
   SetTailColor(clBtnFace);
-end;
-
-procedure TSnake.CreateParams(var Params: TCreateParams);
-begin
-  inherited CreateParams(Params);
-  with Params do
-    WindowClass.style := WindowClass.style and not (CS_HREDRAW or CS_VREDRAW);
+  SetSnakeInterval(DefSnakeInterval);
 end;
 
 destructor TSnake.Destroy;
@@ -222,6 +214,11 @@ begin
   Stop;
   FBuffer.Free;
   inherited Destroy;
+end;
+
+function TSnake.GetSnakeInterval: TSnakeInterval;
+begin
+  Result := FSnakeTimer.Interval;
 end;
 
 function TSnake.GetTailColor: TColor;
@@ -258,6 +255,12 @@ begin
     Move(Points[1], FPoints[FPointCount], (Growth - 1) * SizeOf(TPoint));
     Inc(FPointCount, Growth - 1);
   end;
+end;
+
+procedure TSnake.Loaded;
+begin
+  inherited Loaded;
+  Resize;
 end;
 
 procedure TSnake.Paint;
@@ -352,15 +355,7 @@ end;
 
 procedure TSnake.SetSnakeInterval(Value: TSnakeInterval);
 begin
-  if FSnakeInterval <> Value then
-  begin
-    FSnakeInterval := Value;
-    if FRunning and HandleAllocated then
-    begin
-      KillTimer(Handle, 0);
-      SetTimer(Handle, 0, FSnakeInterval, nil);
-    end;
-  end;
+  FSnakeTimer.Interval := Value;
 end;
 
 procedure TSnake.SetSnakeWidth(Value: TSnakeWidth);
@@ -379,7 +374,6 @@ begin
   begin
     Color := Value;
     FTailClr := ColorToRGB(Color);
-    Brush.Color := Color;
     Canvas.Brush.Color := Color;
     Invalidate;
   end;
@@ -405,21 +399,21 @@ end;
 
 procedure TSnake.Start;
 begin
-  if HandleAllocated then
-  begin
-    SetTimer(Handle, 0, FSnakeInterval, nil);
-    FRunning := True;
-  end;
+  FSnakeTimer.Enabled := True;
 end;
 
 procedure TSnake.Stop;
 begin
-  if HandleAllocated then
-    KillTimer(Handle, 0);
-  FRunning := False;
+  FSnakeTimer.Enabled := False;
   FPointCount := 0;
   SetLength(FPoints, 0);
   FHeadIndex := 0;
+end;
+
+procedure TSnake.Timer(Sender: TObject);
+begin
+  Sneak;
+  Paint;
 end;
 
 function TSnake.WidthToColor(Cur, Max: Integer): TColorRef;
@@ -436,25 +430,6 @@ begin
       Round((FHeadClr.B - FTailClr.B) * (Max - Cur) / FSnakeWidth);
     Result := RGB(R, G, B);
   end;
-end;
-
-procedure TSnake.WMEraseBkgnd(var Message: TWMEraseBkgnd);
-begin
-  if csDesigning in ComponentState then
-    inherited
-  else
-    Message.Result := 1;
-end;
-
-procedure TSnake.WndProc(var Message: TMessage);
-begin
-  if Message.Msg = WM_TIMER then
-  begin
-    Sneak;
-    Paint;
-  end
-  else
-    inherited WndProc(Message);
 end;
 
 { TSplash }
