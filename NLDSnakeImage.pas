@@ -4,12 +4,13 @@
 {                                                                             }
 { Initiator: Albert de Weerd (aka NGLN)                                       }
 { License: Free to use, free to modify                                        }
+{ Website: http://www.nldelphi.com/forum/showthread.php?t=37183               }
 { SVN path: http://svn.nldelphi.com/nldelphi/opensource/ngln/NLDSnakeImage    }
 {                                                                             }
 { *************************************************************************** }
 {                                                                             }
-{ Date: April 25, 2011                                                        }
-{ Version: 1.1.0.0                                                            }
+{ Date: May 14, 2011                                                          }
+{ Version: 1.1.0.1                                                            }
 {                                                                             }
 { *************************************************************************** }
 
@@ -18,7 +19,7 @@ unit NLDSnakeImage;
 interface
 
 uses
-  Windows, SysUtils, Classes, Controls, Messages, Graphics, Math, Contnrs, Jpeg,
+  Windows, SysUtils, Classes, Controls, Messages, Graphics, Math, Contnrs,
   ExtCtrls;
 
 const
@@ -63,9 +64,9 @@ type
     procedure Timer(Sender: TObject);
     function WidthToColor(Cur, Max: Integer): TColorRef;
   protected
-    procedure Loaded; override;
     procedure Paint; override;
     procedure Resize; override;
+    procedure SetParent(AParent: TWinControl); override;
   public
     constructor Create(AOwner: TComponent); override;
     destructor Destroy; override;
@@ -257,12 +258,6 @@ begin
   end;
 end;
 
-procedure TSnake.Loaded;
-begin
-  inherited Loaded;
-  Resize;
-end;
-
 procedure TSnake.Paint;
 var
   DC: HDC;
@@ -351,6 +346,13 @@ begin
     FHeadClr := ColorToRGB(FHeadColor);
     Invalidate;
   end;
+end;
+
+procedure TSnake.SetParent(AParent: TWinControl);
+begin
+  inherited SetParent(AParent);
+  if AParent <> nil then
+    Resize;
 end;
 
 procedure TSnake.SetSnakeInterval(Value: TSnakeInterval);
