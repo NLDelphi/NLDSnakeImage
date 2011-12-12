@@ -3,7 +3,7 @@ unit FSplash;
 interface
 
 uses
-  Classes, Controls, Forms, ExtCtrls, NLDSnakeImage, StdCtrls;
+  Classes, Controls, Forms, ExtCtrls, NLDSnakeImage, StdCtrls, JPeg;
 
 type
   TSplashForm = class(TForm)
